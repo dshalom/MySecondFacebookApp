@@ -1,11 +1,13 @@
 package com.ds.mysecondfacebookapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.view.Menu;
+import android.view.MenuItem;
 
 import com.facebook.Session;
 import com.facebook.SessionState;
@@ -15,19 +17,20 @@ public class MainActivity extends FragmentActivity {
 
 	private static final int SPLASH = 0;
 	private static final int SELECTION = 1;
-	private static final int FRAGMENT_COUNT = SELECTION + 1;
+	private static final int SETTINGS = 2;
+	private static final int FRAGMENT_COUNT = SETTINGS + 1;
 	private boolean isResumed = false;
+	private MenuItem settings;
 
 	private Fragment[] fragments = new Fragment[FRAGMENT_COUNT];
-	
+
 	private UiLifecycleHelper uiHelper;
-	private Session.StatusCallback callback = 
-	    new Session.StatusCallback() {
-	    @Override
-	    public void call(Session session, 
-	            SessionState state, Exception exception) {
-	        onSessionStateChange(session, state, exception);
-	    }
+	private Session.StatusCallback callback = new Session.StatusCallback() {
+		@Override
+		public void call(Session session, SessionState state,
+				Exception exception) {
+			onSessionStateChange(session, state, exception);
+		}
 	};
 
 	@Override
@@ -37,10 +40,11 @@ public class MainActivity extends FragmentActivity {
 
 		uiHelper = new UiLifecycleHelper(this, callback);
 		uiHelper.onCreate(savedInstanceState);
-		
+
 		FragmentManager fm = getSupportFragmentManager();
 		fragments[SPLASH] = fm.findFragmentById(R.id.splashFragment);
 		fragments[SELECTION] = fm.findFragmentById(R.id.selectionFragment);
+		fragments[SETTINGS] = fm.findFragmentById(R.id.userSettingsFragment);
 
 		FragmentTransaction transaction = fm.beginTransaction();
 		for (int i = 0; i < fragments.length; i++) {
@@ -48,7 +52,6 @@ public class MainActivity extends FragmentActivity {
 		}
 		transaction.commit();
 	}
-
 
 	private void showFragment(int fragmentIndex, boolean addToBackStack) {
 		FragmentManager fm = getSupportFragmentManager();
@@ -104,6 +107,21 @@ public class MainActivity extends FragmentActivity {
 			showFragment(SPLASH, false);
 		}
 	}
+	
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu) {
+		// only add the menu when the selection fragment is showing
+	    if (fragments[SELECTION].isVisible()) {
+	        if (menu.size() == 0) {
+	            settings = menu.add(R.string.settings);
+	        }
+	        return true;
+	    } else {
+	        menu.clear();
+	        settings = null;
+	    }
+	    return false;
+	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -115,13 +133,42 @@ public class MainActivity extends FragmentActivity {
 	@Override
 	public void onResume() {
 		super.onResume();
+		uiHelper.onResume();
 		isResumed = true;
 	}
 
 	@Override
 	public void onPause() {
 		super.onPause();
+		uiHelper.onPause();
 		isResumed = false;
+	}
+
+	@Override
+	public void onActivityResult(int requestCode, int resultCode, Intent data) {
+		super.onActivityResult(requestCode, resultCode, data);
+		uiHelper.onActivityResult(requestCode, resultCode, data);
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		uiHelper.onDestroy();
+	}
+
+	@Override
+	protected void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
+		uiHelper.onSaveInstanceState(outState);
+	}
+	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+	    if (item.equals(settings)) {
+	        showFragment(SETTINGS, true);
+	        return true;
+	    }
+	    return false;
 	}
 
 }
